@@ -84,6 +84,9 @@ class YOLOv7_DeepSORT:
             out = cv2.VideoWriter(output, codec, fps, (width, height))
 
         frame_num = 0
+        unique_track_map = {}
+        unique_track_set = set()
+        frames_min_thresh = 10
         while True: # while video is running
             return_value, frame = vid.read()
             if not return_value:
@@ -115,7 +118,6 @@ class YOLOv7_DeepSORT:
             # ---------------------------------------- DETECTION PART COMPLETED ---------------------------------------------------------------------
             
             names = []
-            print("num_objects" : num_objects)
             for i in range(num_objects): # loop through objects and use class index to get class name
                 class_indx = int(classes[i])
                 class_name = self.class_names[class_indx]
@@ -123,7 +125,6 @@ class YOLOv7_DeepSORT:
 
             names = np.array(names)
             count = len(names)
-
             if count_objects:
                 cv2.putText(frame, "Objects being tracked: {}".format(count), (5, 35), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.5, (0, 0, 0), 2)
 
@@ -144,6 +145,19 @@ class YOLOv7_DeepSORT:
             self.tracker.update(detections) #  updtate using Kalman Gain
 
             for track in self.tracker.tracks:  # update new findings AKA tracks
+                track_id = track.track_id
+                if unique_track_map.get(track_id) :
+                    unique_track_map[track_id] = unique_track_map[track_id] + 1
+                else:
+                    unique_track_map[track_id] = 1
+
+
+                if unique_track_map[track_id] >= frames_min_thresh:
+                    unique_track_set.add(track_id)
+
+                print(unique_track_set)
+                # unique_tracked_objects.add(track.track_id)
+                unique_track_id = len(unique_track_set)
                 if not track.is_confirmed() or track.time_since_update > 1:
                     continue 
                 bbox = track.to_tlbr()
@@ -153,7 +167,7 @@ class YOLOv7_DeepSORT:
                 color = [i * 255 for i in color]
                 cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), color, 2)
                 cv2.rectangle(frame, (int(bbox[0]), int(bbox[1]-30)), (int(bbox[0])+(len(class_name)+len(str(track.track_id)))*17, int(bbox[1])), color, -1)
-                cv2.putText(frame, class_name + " : " + str(track.track_id),(int(bbox[0]), int(bbox[1]-11)),0, 0.6, (255,255,255),1, lineType=cv2.LINE_AA)    
+                cv2.putText(frame, class_name + " : " + str(unique_track_id),(int(bbox[0]), int(bbox[1]-11)),0, 0.6, (255,255,255),1, lineType=cv2.LINE_AA)    
 
                 if verbose == 2:
                     print("Tracker ID: {}, Class: {},  BBox Coords (xmin, ymin, xmax, ymax): {}".format(str(track.track_id), class_name, (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))))
