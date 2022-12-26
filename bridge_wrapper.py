@@ -115,6 +115,7 @@ class YOLOv7_DeepSORT:
             # ---------------------------------------- DETECTION PART COMPLETED ---------------------------------------------------------------------
             
             names = []
+            print("num_objects" : num_objects)
             for i in range(num_objects): # loop through objects and use class index to get class name
                 class_indx = int(classes[i])
                 class_name = self.class_names[class_indx]
